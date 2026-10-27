@@ -1,0 +1,97 @@
+ ▐▛███▛█   Claude Code v2.1.296
+▝▜██████▀  Opus 5.5 · Claude Pro
+ ▝▝   ▝▝   ~/…/serious_projects/Node/internet-heruku-playwright-practice
+
+
+❯ explain playwright.config.json                                                
+
+  Listed 1 directory (ctrl+o to expand)
+
+⏺ There's no playwright.config.json in this project. The config file is
+  playwright.config.ts, written in TypeScript. Here's what each part does.
+
+  import { defineConfig, devices } from "@playwright/test"
+  export default defineConfig({ ... })
+  defineConfig only gives you type checking and autocomplete. devices is
+  Playwright's list of preset browser and device profiles.
+
+  Where tests live and how they run
+
+  ┌───────────────┬──────────────────┬──────────────────────────────────────┐
+  │    Setting    │      Value       │               Meaning                │
+  ├───────────────┼──────────────────┼──────────────────────────────────────┤
+  │ testDir       │ './tests'        │ Playwright looks for test files      │
+  │               │                  │ (*.spec.ts, *.test.ts) in tests/.    │
+  ├───────────────┼──────────────────┼──────────────────────────────────────┤
+  │               │                  │ Tests run in parallel, including     │
+  │ fullyParallel │ true             │ tests inside the same file, not only │
+  │               │                  │  across files.                       │
+  ├───────────────┼──────────────────┼──────────────────────────────────────┤
+  │               │                  │ On CI, the run fails if a test.only  │
+  │ forbidOnly    │ !!process.env.CI │ was left in. This stops a stray      │
+  │               │                  │ .only from quietly skipping the rest │
+  │               │                  │  of your tests.                      │
+  ├───────────────┼──────────────────┼──────────────────────────────────────┤
+  │               │                  │ Failed tests are retried twice on CI │
+  │ retries       │ CI ? 2 : 0       │  and not at all on your machine, so  │
+  │               │                  │ flaky tests show up while you work   │
+  │               │                  │ locally.                             │
+  ├───────────────┼──────────────────┼──────────────────────────────────────┤
+  │               │ CI ? 2 :         │ CI uses 2 parallel workers. Locally, │
+  │ workers       │ undefined        │  undefined lets Playwright choose,   │
+  │               │                  │ which is about half your CPU cores.  │
+  └───────────────┴──────────────────┴──────────────────────────────────────┘
+
+  Timeouts
+
+  - timeout: 60_000: each test gets 60 seconds, including its hooks. The default
+    is 30 seconds. Since the target is a remote Heroku site, which can be slow,
+    the extra time makes sense.
+  - expect: { timeout: 10_000 }: an auto-retrying assertion like await 
+    expect(locator).toBeVisible() keeps retrying for up to 10 seconds before it
+    fails. The default is 5 seconds.
+
+  Reporters
+
+  reporter: [['list'], ['html', { open: 'never' }]]
+  - list prints one line per test in the terminal.
+  - html writes a report to playwright-report/. open: 'never' keeps it from
+    opening in a browser automatically. To view it, run npx playwright 
+    show-report.
+
+  use: settings shared by every test
+
+  - baseURL: lets tests call page.goto('/login') instead of writing out the full
+    URL. It defaults to http://the-internet.herokuapp.com. You can point it
+    somewhere else with an environment variable, as the comment in the file
+    says:
+  BASE_URL=http://localhost:5000 npx playwright test
+  - trace: 'on-first-retry': records a full trace (DOM snapshots, network,
+    console, actions) only when a test is retried. Since retries only happen on
+    CI, you'll only get traces there. Open one with npx playwright show-trace 
+    <file>.
+  - screenshot: 'only-on-failure': saves a screenshot when a test fails.
+  - video: 'retain-on-failure': records a video of every test but keeps it only
+    if the test fails.
+
+  These files go into test-results/.
+
+  projects: which browsers to test
+
+  { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+  { name: 'webkit',   use: { ...devices['Desktop Safari'] } },
+  Every test runs once in each of the 3 browser engines. Each devices[...]
+  preset sets the viewport, user agent and similar settings. To run in just one
+  browser:
+  npx playwright test --project=chromium
+
+  In short
+
+  Locally, tests run fast against the live Heroku site in 3 browsers, with no
+  retries and the HTML report available when you want it. On CI (when the CI
+  environment variable is set), the setup gets stricter: .only is blocked,
+  failed tests are retried twice, 2 workers are used, and traces are captured
+  for retried tests.
+
+✻ Crunched for 18s · done 8:40 AM
